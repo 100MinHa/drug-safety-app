@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💊 의약품 안전 검색 서비스 (Green UI)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* -------------------- 폰트 및 기본 스타일 -------------------- */
+        body {
+            background-color: #f0fdf4; /* 연한 민트 배경 */
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .container {
+            max-width: 900px; 
+            margin-top: 50px;
+            margin-bottom: 50px;
+            padding: 30px;
+            background-color: #fff;
+            border: 4px solid #34d399; /* 초록색 프레임 */
+            border-radius: 20px; /* 둥근 모서리 */
+            box-shadow: 0 10px 20px rgba(52, 211, 153, 0.2);
+        }
+        h2 {
+            color: #065f46; /* 진한 초록색 헤딩 */
+            font-weight: 700;
+        }
+        
+        /* -------------------- 검색 및 버튼 스타일 -------------------- */
+        .search-card {
+            border: none;
+            padding: 20px;
+            background-color: #f7fee7; /* 아주 연한 녹색 배경 */
+            border-radius: 15px; /* 둥근 모서리 */
+        }
+        .form-control, .btn {
+            border-radius: 10px; /* 입력 필드 둥글게 */
+        }
+        .btn-custom-green {
+            background-color: #10b981; /* 초록색 배경 */
+            color: white; /* 흰색 글씨 */
+            border: none;
+            font-weight: 700;
+            padding: 0.5rem 1.2rem;
+            transition: background-color 0.3s;
+        }
+        .btn-custom-green:hover {
+            background-color: #059669;
+            color: white;
+        }
+
+        /* -------------------- 복용 약 목록 스타일 -------------------- */
+        .my-drugs-section {
+            border: 1px solid #d1fae5;
+            padding: 20px;
+            background-color: #ecfdf5;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        .drug-badge {
+            background-color: #fff;
+            border: 1px solid #34d399; /* 초록색 테두리 */
+            padding: 8px 12px;
+            border-radius: 10px; /* 둥근 모서리 */
+            display: inline-flex;
+            flex-direction: column;
+            line-height: 1.2;
+            margin-right: 8px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        .drug-badge:hover {
+            background-color: #d1fae5;
+        }
+        .drug-name {
+            font-weight: bold;
+            color: #059669; /* 진한 초록색 글씨 */
+            font-size: 0.95rem;
+        }
+        .drug-ingredient {
+            font-size: 0.7rem;
+            color: #9ca3af; /* 회색 글씨 */
+            white-space: nowrap;
+            margin-top: 3px;
+        }
+
+        /* -------------------- 결과 카드 및 정보 스타일 -------------------- */
+        .info-card {
+            margin-bottom: 20px;
+            border-left: 8px solid #34d399; /* 초록색 강조 */
+            border-radius: 15px; /* 둥근 모서리 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+        }
+        .info-item h4 {
+            color: #78350f; /* 노란색 계열 강조 */
+            border-bottom: 2px solid #fcd34d; /* 노란색 구분선 */
+            padding-bottom: 5px;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        .info-card .badge {
+            border-radius: 8px;
+        }
+
+        /* -------------------- 경고창 스타일 (빨간색) -------------------- */
+        .alert-danger {
+            background-color: #fee2e2; /* 아주 연한 빨간색 배경 */
+            color: #991b1b; /* 진한 빨간색 글씨 */
+            border: 2px solid #ef4444; /* 빨간색 테두리 */
+            border-radius: 15px; /* 둥근 모서리 */
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+        }
+        .alert-heading {
+            color: #b91c1c !important; 
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="text-center mb-5">💊 의약품 정보 검색 및 안전 경고 서비스</h2>
+        
+        <div class="my-drugs-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-danger mb-0" style="color:#b91c1c;">나의 복용 약 (경고 기준)</h4>
+                {% if my_drugs %}
+                    <a href="{{ url_for('clear_drugs') }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;">전체 초기화</a>
+                {% endif %}
+            </div>
+            
+            <ul class="list-inline">
+                {% if my_drugs %}
+                    {% for drug in my_drugs %}
+                        <li class="list-inline-item drug-badge">
+                            <span class="drug-name">
+                                {{ drug.name }} 
+                                <a href="{{ url_for('remove_drug', drug_name=drug.name) }}" class="text-danger ms-1" style="text-decoration: none;">&times;</a>
+                            </span>
+                            <span class="drug-ingredient">
+                                {% if drug.ingredient != '성분 정보 없음' %}
+                                    {{ drug.ingredient }}
+                                {% else %}
+                                    성분 정보 미제공
+                                {% endif %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                {% else %}
+                    <li class="list-inline-item text-muted">등록된 복용 약이 없습니다.</li>
+                {% endif %}
+            </ul>
+            
+            <form method="POST" action="{{ url_for('add_drug') }}" class="input-group mt-3">
+                <input type="text" class="form-control" placeholder="복용 중인 약 이름 추가 (예: 타이레놀)" name="my_drug_name" required style="border-radius: 10px 0 0 10px;">
+                <button class="btn btn-custom-green" type="submit" style="border-radius: 0 10px 10px 0;">등록</button>
+            </form>
+        </div>
+        
+        {% if warnings %}
+            <div class="alert alert-danger mb-5" role="alert">
+                <h4 class="alert-heading">🚨 병용금기 위험 경고</h4>
+                <p>현재 복용 중인 약과 검색하신 약 사이에 **주의 또는 금기** 성분 충돌이 감지되었습니다. 의사 또는 약사와 상담하세요.</p>
+                <hr style="border-color:#ef4444;">
+                {% for warning in warnings %}
+                    <p class="mb-0 small">
+                        <strong>[검색 약: {{ warning.searched_drug }}]</strong>
+                        <span class="mx-2">→</span>
+                        <strong>[충돌 대상: {{ warning.conflict_drug }}]</strong>
+                        <br><small class="text-muted">상세 정보: {{ warning.info | safe }}</small>
+                    </p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="card search-card mb-4">
+            <form method="POST" action="/">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="새로 검색할 약 이름을 입력하세요" name="drug_name" required>
+                    <button class="btn btn-custom-green" type="submit">🔍 검색</button>
+                </div>
+            </form>
+        </div>
+
+
+        {% if drug_name and drug_info_list %}
+            <h3 class="mt-5 mb-4 text-center" style="color:#065f46;">'{{ drug_name }}' 검색 결과 ({{ drug_info_list | length }}개)</h3>
+
+            <div class="result-group">
+                {% for drug_info in drug_info_list %}
+                <div class="card info-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0" style="color:#059669;">약품명: {{ drug_info.약품명 }}</h4>
+                        {% if drug_info.성분 != '정보 없음' %}
+                            <span class="badge bg-success p-2" style="background-color: #34d399!important; border-radius: 8px;">주요 성분: {{ drug_info.성분 | truncate(60, True) }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary p-2" style="border-radius: 8px;">성분 정보 미제공</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <div class="info-item">
+                            <h4>✨ 효능/효과</h4>
+                            <p>{{ drug_info.효과 }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <h4>💉 투약량 (용법/용량)</h4>
+                        <p>{{ drug_info.투약량 }}</p>
+                    </div>
+
+                    <div class="info-item">
+                        <h4>⚠️ 주의사항 (경고)</h4>
+                            <p>{{ drug_info.주의사항 }}</p>
+                    </div>
+
+                    <div class="info-item">
+                        <h4 style="color:#b91c1c;">🛑 다른 약과의 병용금기/주의</h4>
+                        <p class="text-danger">{{ drug_info.병용금기 }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+        {% elif drug_name %}
+            <div class="alert alert-warning mt-4 text-center" role="alert" style="border-radius: 10px; background-color:#fffbeb; color: #92400e; border-color:#f59e0b;">
+                ❌ <strong>'{{ drug_name }}'</strong> 에 대한 정보를 찾을 수 없습니다.
+            </div>
+        {% endif %}
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
